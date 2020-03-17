@@ -18,7 +18,7 @@ int spawn_time = 15;
 double step = 0.1;
 int [1, 4] dir;
 int [1, 2] lane;
-//int lane_array[number_of_vehicles], dir_array[number_of_vehicles];
+int lane_array[number_of_vehicles], dir_array[number_of_vehicles];
 double v_max = 17.0;
 double acc = 3.0;
 double approach_length = 150.0;
@@ -28,10 +28,8 @@ double safety_gap = 0.500;
 int lane_number_array[number_of_vehicles];
 double enter_time_array[number_of_vehicles];
 double enter_velocity_array[number_of_vehicles];
-double d1_array[number_of_vehicles], d2_array[number_of_vehicles], d3_array[number_of_vehicles], d4_array[number_of_vehicles];
-int c1_array[number_of_vehicles], c2_array[number_of_vehicles], c3_array[number_of_vehicles], c4_array[number_of_vehicles];
-// int c1, c2, c3, c4, lane_number;
-// double d1, d2, d3, d4;
+int c1, c2, c3, c4, lane_number;
+double d1, d2, d3, d4;
 double veh_length = 2.5;
 double veh_width = 2.0;
 double last_vehicle_depart_time[12];
@@ -39,57 +37,60 @@ int last_vehicle_depart_id[12];
 int vehicle_ahead_in_lane[number_of_vehicles];
 int previous_lane_n;
 
+
+
 double v_lane_array[number_of_vehicles];
-double v_fefs_array[number_of_vehicles];
-double v_window_array[number_of_vehicles];
-double v_reservation_array[number_of_vehicles];
 double v_final[number_of_vehicles], v_f;
 bool in_lane[number_of_vehicles];
 bool in_intersection[number_of_vehicles];
-double pose[number_of_vehicles];
+double pose[number_of_vehicles], pos;
 double v_trans[number_of_vehicles];
-//int[0, 1] entered_here = 0;
+int[0, 1] entered_here = 0;
 int loop_value = 0;
-// int[0, 1] lane_occupancy[13][3000];
+int[0, 1] lane_occupancy[13][3000];
 int[0, 1] int_occupancy[13][420];
-// int previous_lane_roster[number_of_vehicles];
+int previous_lane_roster[number_of_vehicles];
 int previous_int_roster[number_of_vehicles];
 int lane_collision = 0;
 int int_collision = 0;
-
+double v_fefs_array[number_of_vehicles];
+double v_window_array[number_of_vehicles];
+double v_reservation_array[number_of_vehicles];
 double cp_register[17][11][2];
-// double v_avg;
-// int received_windowV;
-// double avg_vlane;
-// double avg_vfefs;
-// double avg_vwindow;
-// double avg_vreservation;
-// int veh_in_int;
-// int cp;
-// int which_algo;
+double v_avg;
+int received_windowV;
+double avg_vlane;
+double avg_vfefs;
+double avg_vwindow;
+double avg_vreservation;
+int veh_in_int;
+int cp;
+int which_algo;
 
 double v_l;
 double v_fefs;
 double v_window;
 double v_reservation;
 //double intersection_travel_length;
-// double lvdt;
-// double sldt; // safe lane depart time
-// double transit_time;
-// double transit_distance;
-// double slope1, slope2, slope3, slope4;
-// double rslope1, rslope2, rslope3, rslope4;
-// double fefs_max_slope, res_max_slope;
-// double fefs_criticalcp_target_time;
-// double fefs_criticalcp_in_time;
-// double res_criticalcp_target_time;
-// double res_criticalcp_in_time;
+double lvdt;
+double sldt; // safe lane depart time
+double transit_time;
+double transit_distance;
+double slope1, slope2, slope3, slope4;
+double rslope1, rslope2, rslope3, rslope4;
+double fefs_max_slope, res_max_slope;
+double fefs_criticalcp_target_time;
+double fefs_criticalcp_in_time;
+double res_criticalcp_target_time;
+double res_criticalcp_in_time;
 double plot3, plot2;
 int plot1;
-
+double d1_array[number_of_vehicles], d2_array[number_of_vehicles], d3_array[number_of_vehicles], d4_array[number_of_vehicles];
+int c1_array[number_of_vehicles], c2_array[number_of_vehicles], c3_array[number_of_vehicles], c4_array[number_of_vehicles];
 int c; // c for critical cp
+int vel_ind, ind;
 double cell_width = 0.05;
-// bool crossed_lane[number_of_vehicles];
+bool crossed_lane[number_of_vehicles];
 
 
 dynamic Master(const int v_id);
@@ -109,16 +110,10 @@ double abs(double num){
     else return -1*num;
 }
 
-int fint(double x){
-    int i;
-    for(i = 0; i&lt;x; i++){}
-    return i-1;
-}
 void initialize_vehicle(int v_id){
-	int c1, c2, c3, c4, lane_number;
-	double d1, d2, d3, d4;
+
     enter_time_array[v_id] = pr_cl * step;
-    enter_velocity_array[v_id] = 10 + random(7);
+    enter_velocity_array[v_id] = 5 + random(12);
     
     if(dir==1 &amp;&amp; lane ==1){
         
@@ -160,19 +155,20 @@ void initialize_vehicle(int v_id){
     v_trans[v_id] = enter_velocity_array[v_id];
     in_lane[v_id] = true;
     in_intersection[v_id] = false;
-    // crossed_lane[v_id] = false;
+    crossed_lane[v_id] = false;
     vehicle_ahead_in_lane[v_id] = last_vehicle_depart_id[lane_number];
     last_vehicle_depart_id[lane_number] = v_id;
     //intersection_travel_length = 2*d1 + d2 + d3 + d4;
 }
 
 
+
 void find_Vlane(int v_id){
     
-    int lane_num;    
+    int lane_num;
+
     double D, ti, vi, to, v_lane, T;
-    double d1, d2, d3, d4;
-    d1 = d1_array[v_id] ; d2 = d2_array[v_id];d3 = d3_array[v_id]; d4 = d4_array[v_id];    
+
     lane_num = lane_number_array[v_id];
 
     ti = enter_time_array[v_id];
@@ -199,14 +195,204 @@ void find_Vlane(int v_id){
 }
 
 
+void find_Vfefs(int v_id){
+    
+    double D, ti, vi, to, T, v1, v2;
+
+    ti = enter_time_array[v_id];
+    to = cp_register[c1_array[v_id]][0][1];
+    T = to-ti;
+    vi = enter_velocity_array[v_id];
+
+    D = approach_length + d1_array[v_id]; // meters
+
+    if(to==0|| (acc*T*(acc*T + 2*vi) - 2*acc*D)&lt;0 || to &lt;= ti){
+        v1 = v_lane_array[v_id];
+    }else if(vi*T &lt; D){
+        v1 = (vi + acc*T) - sqrt(acc*T*(acc*T + 2*vi) - 2*acc*D);
+    } else if(vi*T &gt; D){
+        v1 = (vi - acc*T) + sqrt(acc*T*(acc*T - 2*vi) + 2*acc*D);
+    } else v1 = vi;
+    v1 = min(v1, v_max);
+    
+    to = cp_register[c2_array[v_id]][0][1];
+    T = to-ti;
+    D = approach_length + d1_array[v_id] + d2_array[v_id] ; //meters
+
+    if(to==0|| (acc*T*(acc*T + 2*vi) - 2*acc*D)&lt;0 || to &lt; ti){
+        v2 = v_lane_array[v_id];
+    }else if(vi*T &lt; D){
+        v2 = (vi + acc*T) - sqrt(acc*T*(acc*T + 2*vi) - 2*acc*D);
+    } else if(vi*T &gt; D){
+        v2 = (vi - acc*T) + sqrt(acc*T*(acc*T - 2*vi) + 2*acc*D);
+    } else v2 = vi;
+    v2 = min(v2, v_max);
+
+    v_fefs_array[v_id] = min(v1, v2);
+    v_fefs = v_fefs_array[v_id];
+}
 
 
 
+int fint(double x){
+    int i;
+    for(i = 0; i&lt;x; i++){}
+    return i-1;
+}
+
+
+
+bool is_window_available(double vel, double in_vel, double in_time, double d, int c, double v_len, int lane_num){
+    double tt1, tt2, s, cp_in_time, cp_out_time, occ_ext, app_len;
+    int i;
+    if(lane_num==1 || lane_num== 3 || lane_num== 5 || lane_num==7) {occ_ext = veh_width/2;}
+    else {occ_ext = veh_width/1.2;} //19.25*20
+    app_len = (veh_length + 2*occ_ext);
+
+    tt1 = abs(in_vel - vel)/ acc;
+    s  = abs(vel*vel - in_vel*in_vel)/(2*acc);
+    tt2 = (approach_length - s + d - occ_ext) / vel;
+
+    cp_in_time = in_time + tt1 + tt2;
+    cp_out_time = cp_in_time + (app_len/vel);   
+ 
+    
+    if(cp_in_time &gt; cp_register[c][0][1]) return true;
+    for(i = stack_length -1; i&gt;0; i--){
+        // loop_value += 1;        
+        if(cp_register[c][i][1] &lt; cp_in_time and cp_register[c][i-1][0] &gt; cp_out_time + safety_gap) return true;        
+    }
+    return false;
+}
+
+
+void find_Vwindow(int v_id){
+    double in_velocity, in_time, v_temp;
+    double d1, d2, d3, d4;
+    int c1, c2, c3, c4, lane_num;
+    bool c1_clear = false;bool c2_clear = false; bool c3_clear = false; bool c4_clear = false;
+    lane_num = lane_number_array[v_id];
+    d1 = d1_array[v_id];d2 = d2_array[v_id];d3 = d3_array[v_id];d4 = d4_array[v_id];
+    c1 = c1_array[v_id];c2 = c2_array[v_id];c3 = c3_array[v_id];c4 = c4_array[v_id];
+    //bool is_v_window_possible;
+    //double tt1, tt2, s, cp1_in_time, cp2_in_time, cp3_in_time, cp4_in_time;
+    in_velocity  = enter_velocity_array[v_id]; in_time = enter_time_array[v_id];
+
+    v_temp = v_lane_array[v_id];
+    
+    while(!(c1_clear&amp;&amp;c2_clear&amp;&amp;c3_clear&amp;&amp;c4_clear) &amp;&amp; v_temp&gt;0){
+        
+        c1_clear = is_window_available(v_temp, in_velocity, in_time, d1,          c1, veh_length, lane_num);
+        c2_clear = is_window_available(v_temp, in_velocity, in_time, d1+d2,       c2, veh_length, lane_num);
+        c3_clear = is_window_available(v_temp, in_velocity, in_time, d1+d2+d3,    c3, veh_length, lane_num);
+        c4_clear = is_window_available(v_temp, in_velocity, in_time, d1+d2+d3+d4, c4, veh_length, lane_num);
+        
+        v_temp = v_temp - 0.1;
+
+    }
+    if(v_temp &gt; 0.1){ v_window = v_temp + 0.1; v_window_array[v_id] = v_window;}
+    else {v_window_array[v_id] = 0;v_window = 0;}
+}
+
+bool did_conflict_resolve(int v_id){
+    double v_fefs = v_fefs_array[v_id];
+    if(v_fefs &gt;0){
+        double tt1, tt2, s, cp3_in_time, cp3_out_time, cp4_in_time, cp4_out_time, reserved_cp3_in_time, reserved_cp3_out_time, reserved_cp4_in_time, reserved_cp4_out_time;
+        double in_velocity, in_time, cp3_distance, cp4_distance;
+        bool cp3_clear = false, cp4_clear = false;
+        
+        in_velocity = enter_velocity_array[v_id];
+        in_time = enter_time_array[v_id];
+        
+        cp3_distance = d1 + d2 + d3;
+        cp4_distance = d1 + d2 + d3 + d4;    
+
+        tt1 = abs(v_fefs - in_velocity)/acc;
+        s = abs(v_fefs*v_fefs - in_velocity*in_velocity)/(2*acc);
+        tt2 = (approach_length - s + cp3_distance) / v_fefs;
+        cp3_in_time = in_time + tt1 + tt2;
+        cp3_out_time = cp3_in_time + (veh_length/v_fefs);
+
+        tt2 = (approach_length -s + cp4_distance)/v_fefs;
+        cp4_in_time = in_time + tt1 + tt2;
+        cp4_out_time = cp4_in_time + (veh_length/v_fefs);
+
+        reserved_cp3_in_time = cp_register[c3][0][0]; reserved_cp3_out_time = cp_register[c3][0][1];
+        reserved_cp4_in_time = cp_register[c4][0][0]; reserved_cp4_out_time = cp_register[c4][0][1];
+        
+        if((cp3_in_time &gt; reserved_cp3_in_time &amp; cp3_in_time &gt; reserved_cp3_out_time)||(cp3_out_time &lt; reserved_cp3_in_time &amp;&amp; cp3_out_time &lt; reserved_cp3_out_time)){
+            cp3_clear = true;       
+        }
+
+        if((cp4_in_time &gt; reserved_cp4_in_time &amp; cp4_in_time &gt; reserved_cp4_out_time)||(cp4_out_time &lt; reserved_cp4_in_time &amp;&amp; cp4_out_time &lt; reserved_cp4_out_time)){
+            cp4_clear = true;       
+        }
+
+        if(cp3_clear &amp;&amp; cp4_clear) return true;
+        else return false;
+    }
+    else return(false);
+    
+
+}
+
+double min3(double a, double b, double c){
+    if(a&lt;b){
+        if(a&lt;c) return a;
+        else return c;
+    }
+    else{
+        if(b&gt;c) return c;
+        else return b;
+    }
+
+}
+
+
+void find_Vreservation(int v_id){
+    
+    double D, ti, vi, to, T, v3, v4;
+
+    ti = enter_time_array[v_id];
+    to = cp_register[c3_array[v_id]][0][1];
+    T = to-ti;
+    vi = enter_velocity_array[v_id];
+
+    D = approach_length + d1_array[v_id]+d2_array[v_id]+d3_array[v_id]; // meters
+
+    if(to==0|| (acc*T*(acc*T + 2*vi) - 2*acc*D)&lt;0 || to &lt; ti){
+        v3 = v_lane_array[v_id];
+    }else if(vi*T &lt; D){
+        v3 = (vi + acc*T) - sqrt(acc*T*(acc*T + 2*vi) - 2*acc*D);
+    } else if(vi*T &gt; D){
+        v3 = (vi - acc*T) + sqrt(acc*T*(acc*T - 2*vi) + 2*acc*D);
+    } else v3 = vi;
+    v3 = min(v3, v_max);
+    
+    to = cp_register[c4_array[v_id]][0][1];
+    T = to-ti;
+    D = approach_length + d1_array[v_id] + d2_array[v_id] + d3_array[v_id] + d4_array[v_id]; //meters
+
+    if(to==0|| (acc*T*(acc*T + 2*vi) - 2*acc*D)&lt;0 || to &lt; ti){
+        v4 = v_lane_array[v_id];
+    }else if(vi*T &lt; D){
+        v4 = (vi + acc*T) - sqrt(acc*T*(acc*T + 2*vi) - 2*acc*D);
+    } else if(vi*T &gt; D){
+        v4 = (vi - acc*T) + sqrt(acc*T*(acc*T - 2*vi) + 2*acc*D);
+    } else v4 = vi;
+    v4 = min(v4, v_max);
+
+    v_reservation_array[v_id] = min3(v_fefs_array[v_id], v3, v4);
+    v_reservation = v_reservation_array[v_id];
+}
 
 
 void find_Vfinal(int v_id){
 
-    v_final[v_id] = v_lane_array[v_id];
+     if(v_window_array[v_id] &gt; v_fefs_array[v_id]) {v_final[v_id] = v_window_array[v_id]; vel_ind = 2;}
+    else if(did_conflict_resolve(v_id)){ v_final[v_id] = v_fefs_array[v_id];vel_ind =1 ;}
+    else {v_final[v_id] = v_reservation_array[v_id];vel_ind = 3;}
+    
 }
 
 
@@ -230,20 +416,18 @@ void insert_in_stack(int c, double in_time, double out_time){
 
     cp_register[c][index][0] = in_time;
     cp_register[c][index][1] = out_time;   
+    ind = index;
 }
 
 void update_registers(int v_id){
     double tt1, tt2, s, pass_time, in_time, in_velocity, v_fin, occ_ext, app_len;
-    int c1, c2, c3, c4, lane_num;
-    double d1, d2, d3, d4;
-    c1 = c1_array[v_id] ; c2 = c2_array[v_id];c3 = c3_array[v_id]; c4 = c4_array[v_id];    
-    d1 = d1_array[v_id] ; d2 = d2_array[v_id];d3 = d3_array[v_id]; d4 = d4_array[v_id];    
+    int lane_num;
     lane_num = lane_number_array[v_id];
     in_time = enter_time_array[v_id];
     in_velocity = enter_velocity_array[v_id];
 
     if(lane_num==1 || lane_num== 3 || lane_num== 5 || lane_num==7) {occ_ext = veh_width/2;}
-    else {occ_ext = veh_width/1.2;} 
+    else {occ_ext = veh_width/1.2;} //19.25*20
     app_len = (veh_length + 2*occ_ext);
 
     
@@ -310,34 +494,34 @@ void update_lane_pose(int v_id){
             }
     }else{
         in_lane[v_id] = false;
-        // veh_in_int += 1;
+        veh_in_int += 1;
         in_intersection[v_id] = true;
     }
 
-    // if(in_lane[v_id]){
-    //     position = pose[v_id]; roster = fint(position/delta);
-    //     previous_roster = previous_lane_roster[v_id];
+    if(in_lane[v_id]){
+        position = pose[v_id]; roster = fint(position/delta);
+        previous_roster = previous_lane_roster[v_id];
         
-    //     if(previous_roster &lt; 50){
-    //         for(i = 0; i &lt; previous_roster; i++) lane_occupancy[lane_num][i] = 0;
-    //     }else{
-    //         for(i = 0; i &lt; 50; i++) lane_occupancy[lane_num][previous_roster - i] = 0;
-    //     }
+        if(previous_roster &lt; 50){
+            for(i = 0; i &lt; previous_roster; i++) lane_occupancy[lane_num][i] = 0;
+        }else{
+            for(i = 0; i &lt; 50; i++) lane_occupancy[lane_num][previous_roster - i] = 0;
+        }
         
-    //     if(roster &lt; 50){
-    //         for(i = 0; i &lt; roster; i++) lane_occupancy[lane_num][i] = 1;        
-    //     }else{
-    //         if(roster &gt;= 3000) roster_overflow = roster - 3000;
-    //         for(i = 0; i &lt; 50 - roster_overflow - 1; i++) lane_occupancy[lane_num][roster - roster_overflow - 1 - i] = 1;
-    //     }
+        if(roster &lt; 50){
+            for(i = 0; i &lt; roster; i++) lane_occupancy[lane_num][i] = 1;        
+        }else{
+            if(roster &gt;= 3000) roster_overflow = roster - 3000;
+            for(i = 0; i &lt; 50 - roster_overflow - 1; i++) lane_occupancy[lane_num][roster - roster_overflow - 1 - i] = 1;
+        }
 
-    //     if(roster &lt; 3000) previous_lane_roster[v_id] = roster;
-    //     else previous_lane_roster[v_id] = 2999;
-    // }
-    // if(in_intersection[v_id] &amp;&amp; !crossed_lane[v_id]){
-    //     crossed_lane[v_id] = true;
-    //     for(i = 0; i &lt; 50; i++) lane_occupancy[lane_num][2999 - i] = 0;
-    // }
+        if(roster &lt; 3000) previous_lane_roster[v_id] = roster;
+        else previous_lane_roster[v_id] = 2999;
+    }
+    if(in_intersection[v_id] &amp;&amp; !crossed_lane[v_id]){
+        crossed_lane[v_id] = true;
+        for(i = 0; i &lt; 50; i++) lane_occupancy[lane_num][2999 - i] = 0;
+    }
     
     
     
@@ -350,7 +534,7 @@ void check_lane_collision(int v_id){
     if(in_lane[v_id]){
         if(pose[vehicle_ahead_in_lane[v_id]]&gt;0 &amp;&amp; pose[v_id] &gt;= pose[vehicle_ahead_in_lane[v_id]] - veh_length)
         {
-            plot1 = v_id; plot2 = vehicle_ahead_in_lane[v_id]; plot3 = pose[v_id];
+            //plot1 = v_id; plot2 = vehicle_ahead_in_lane[v_id];
             lane_collision += 1;
         }
     }
@@ -371,7 +555,6 @@ void check_lane_collision(int v_id){
     
 }
 
-
 void update_int_pose(int v_id){
     double v_fin = v_final[v_id], int_length_travelled, total_int_length, delta, occ_ext, app_len, len_in_int;
     int lane_num = lane_number_array[v_id], roster_head, number_of_rosters, i , previous_roster;
@@ -379,7 +562,7 @@ void update_int_pose(int v_id){
     else {total_int_length = 19.25; number_of_rosters = 385;} //19.25*20
     app_len = (veh_length + 2*occ_ext )/cell_width; // In terms of rosters occupied by the extended length of the vehicle
     delta = total_int_length / number_of_rosters;
-    //pos = pose[v_id];
+    pos = pose[v_id];
     if(in_intersection[v_id]){
         pose[v_id] = pose[v_id] + v_fin * step;
         int_length_travelled = pose[v_id] - approach_length;
@@ -416,26 +599,27 @@ void update_int_pose(int v_id){
     
 }
 
+
 void check_int_collision(int v_id){
-    if(int_occupancy[1][106] &amp;&amp; int_occupancy[5][316]) {int_collision += 1;}
-    if(int_occupancy[1][199] &amp;&amp; int_occupancy[4][277]) {int_collision += 1;}
-    if(int_occupancy[1][222] &amp;&amp; int_occupancy[8][109]) {int_collision += 1;}
-    if(int_occupancy[1][316] &amp;&amp; int_occupancy[7][106]) {int_collision += 1;}
+    if(int_occupancy[1][106] &amp;&amp; int_occupancy[5][316]) {int_collision += 1; cp = 1;}
+    if(int_occupancy[1][199] &amp;&amp; int_occupancy[4][277]) {int_collision += 1; cp = 2;}
+    if(int_occupancy[1][222] &amp;&amp; int_occupancy[8][109]) {int_collision += 1; cp = 3;}
+    if(int_occupancy[1][316] &amp;&amp; int_occupancy[7][106]) {int_collision += 1; cp = 4;}
 
-    if(int_occupancy[3][316] &amp;&amp; int_occupancy[5][106]) {int_collision += 1;}
-    if(int_occupancy[3][222] &amp;&amp; int_occupancy[6][109]) {int_collision += 1;}
-    if(int_occupancy[3][199] &amp;&amp; int_occupancy[2][277]) {int_collision += 1;}
-    if(int_occupancy[3][106] &amp;&amp; int_occupancy[7][316]) {int_collision += 1;}
+    if(int_occupancy[3][316] &amp;&amp; int_occupancy[5][106]) {int_collision += 1; cp = 5;}
+    if(int_occupancy[3][222] &amp;&amp; int_occupancy[6][109]) {int_collision += 1; cp = 6;}
+    if(int_occupancy[3][199] &amp;&amp; int_occupancy[2][277]) {int_collision += 1; cp = 7;}
+    if(int_occupancy[3][106] &amp;&amp; int_occupancy[7][316]) {int_collision += 1; cp = 8;}
 
-    if(int_occupancy[4][109] &amp;&amp; int_occupancy[7][222]) {int_collision += 1;}
-    if(int_occupancy[6][277] &amp;&amp; int_occupancy[7][199]) {int_collision += 1;}
-    if(int_occupancy[2][109] &amp;&amp; int_occupancy[5][222]) {int_collision += 1;}
-    if(int_occupancy[5][199] &amp;&amp; int_occupancy[8][277]) {int_collision += 1;}
+    if(int_occupancy[4][109] &amp;&amp; int_occupancy[7][222]) {int_collision += 1; cp = 9;}
+    if(int_occupancy[6][277] &amp;&amp; int_occupancy[7][199]) {int_collision += 1; cp = 10;}
+    if(int_occupancy[2][109] &amp;&amp; int_occupancy[5][222]) {int_collision += 1; cp = 11;}
+    if(int_occupancy[5][199] &amp;&amp; int_occupancy[8][277]) {int_collision += 1; cp = 12;}
 
-    if(int_occupancy[8][253] &amp;&amp; int_occupancy[2][133]) {int_collision += 1;}
-    if(int_occupancy[2][253] &amp;&amp; int_occupancy[6][133]) {int_collision += 1;}
-    if(int_occupancy[4][133] &amp;&amp; int_occupancy[6][253]) {int_collision += 1;}
-    if(int_occupancy[8][133] &amp;&amp; int_occupancy[4][253]) {int_collision += 1;}
+    if(int_occupancy[8][253] &amp;&amp; int_occupancy[2][133]) {int_collision += 1; cp = 13;}
+    if(int_occupancy[2][253] &amp;&amp; int_occupancy[6][133]) {int_collision += 1; cp = 14;}
+    if(int_occupancy[4][133] &amp;&amp; int_occupancy[6][253]) {int_collision += 1; cp = 15;}
+    if(int_occupancy[8][133] &amp;&amp; int_occupancy[4][253]) {int_collision += 1; cp = 16;}
 }
 
 
@@ -458,67 +642,71 @@ clock x;</declaration>
 		<location id="id3" x="-17" y="-280">
 			<committed/>
 		</location>
-		<location id="id4" x="450" y="-170">
+		<location id="id4" x="-17" y="-442">
+			<committed/>
+		</location>
+		<location id="id5" x="-17" y="-518">
+			<committed/>
+		</location>
+		<location id="id6" x="450" y="-170">
 			<name x="467" y="-179">terminate</name>
 		</location>
-		<location id="id5" x="450" y="-621">
+		<location id="id7" x="450" y="-621">
 			<name x="339" y="-629">move_in_lane</name>
 			<label kind="invariant" x="390" y="-612">x&lt;=1</label>
 		</location>
-		<location id="id6" x="450" y="-383">
+		<location id="id8" x="450" y="-383">
 			<name x="467" y="-408">move_in_intersection</name>
 			<label kind="invariant" x="526" y="-391">x&lt;=1</label>
 		</location>
-		<location id="id7" x="450" y="-680">
+		<location id="id9" x="450" y="-680">
 			<committed/>
 		</location>
-		<location id="id8" x="-289" y="-136">
+		<location id="id10" x="-289" y="-136">
 			<committed/>
 		</location>
-		<location id="id9" x="-289" y="-272">
+		<location id="id11" x="-17" y="-595">
 			<committed/>
 		</location>
-		<location id="id10" x="-255" y="-340">
+		<location id="id12" x="-289" y="-272">
+			<committed/>
+		</location>
+		<location id="id13" x="-255" y="-340">
 			<name x="-263" y="-399">left</name>
 			<committed/>
 		</location>
-		<location id="id11" x="-331" y="-340">
+		<location id="id14" x="-331" y="-340">
 			<name x="-365" y="-399">straight</name>
 			<committed/>
 		</location>
-		<location id="id12" x="-119" y="-510">
-			<name x="-136" y="-535">north</name>
+		<location id="id15" x="-119" y="-510">
+			<name x="-136" y="-535">south</name>
 			<committed/>
 		</location>
-		<location id="id13" x="-213" y="-510">
-			<name x="-221" y="-535">south</name>
+		<location id="id16" x="-213" y="-510">
+			<name x="-221" y="-535">north</name>
 			<committed/>
 		</location>
-		<location id="id14" x="-323" y="-510">
+		<location id="id17" x="-323" y="-510">
 			<name x="-365" y="-535">west</name>
 			<committed/>
 		</location>
-		<location id="id15" x="-425" y="-510">
+		<location id="id18" x="-425" y="-510">
 			<name x="-442" y="-544">east</name>
 			<committed/>
 		</location>
-		<location id="id16" x="-289" y="-663">
+		<location id="id19" x="-289" y="-663">
 			<name x="-299" y="-697">start</name>
 			<committed/>
 		</location>
-		<branchpoint id="id17" x="-289" y="-442">
+		<branchpoint id="id20" x="-289" y="-442">
 		</branchpoint>
-		<branchpoint id="id18" x="-289" y="-578">
+		<branchpoint id="id21" x="-289" y="-578">
 		</branchpoint>
-		<init ref="id16"/>
-		<transition>
-			<source ref="id1"/>
-			<target ref="id2"/>
-			<label kind="assignment" x="-17" y="-510">find_Vlane(v_id)</label>
-		</transition>
+		<init ref="id19"/>
 		<transition>
 			<source ref="id0"/>
-			<target ref="id7"/>
+			<target ref="id9"/>
 			<nail x="161" y="-153"/>
 			<nail x="161" y="-681"/>
 		</transition>
@@ -528,7 +716,12 @@ clock x;</declaration>
 			<label kind="assignment" x="-8" y="-221">update_registers(v_id)</label>
 		</transition>
 		<transition>
-			<source ref="id8"/>
+			<source ref="id1"/>
+			<target ref="id11"/>
+			<label kind="assignment" x="-8" y="-646">find_Vlane(v_id)</label>
+		</transition>
+		<transition>
+			<source ref="id10"/>
 			<target ref="id1"/>
 			<nail x="-76" y="-136"/>
 			<nail x="-76" y="-663"/>
@@ -539,8 +732,23 @@ clock x;</declaration>
 			<label kind="assignment" x="0" y="-331">find_Vfinal(v_id)</label>
 		</transition>
 		<transition>
-			<source ref="id6"/>
-			<target ref="id6"/>
+			<source ref="id4"/>
+			<target ref="id2"/>
+			<label kind="assignment" x="-8" y="-425">find_Vreservation(v_id)</label>
+		</transition>
+		<transition>
+			<source ref="id5"/>
+			<target ref="id4"/>
+			<label kind="assignment" x="-8" y="-501">find_Vwindow(v_id)</label>
+		</transition>
+		<transition>
+			<source ref="id11"/>
+			<target ref="id5"/>
+			<label kind="assignment" x="-8" y="-569">find_Vfefs(v_id)</label>
+		</transition>
+		<transition>
+			<source ref="id8"/>
+			<target ref="id8"/>
 			<label kind="guard" x="195" y="-502">x==1&amp;&amp;in_intersection[v_id]</label>
 			<label kind="assignment" x="195" y="-374">x=0, update_int_pose(v_id), 
 check_int_collision(v_id)</label>
@@ -548,14 +756,14 @@ check_int_collision(v_id)</label>
 			<nail x="195" y="-238"/>
 		</transition>
 		<transition>
-			<source ref="id6"/>
-			<target ref="id4"/>
+			<source ref="id8"/>
+			<target ref="id6"/>
 			<label kind="guard" x="458" y="-306">x==1&amp;&amp;!in_intersection[v_id]</label>
 			<label kind="assignment" x="458" y="-281">exit()</label>
 		</transition>
 		<transition>
-			<source ref="id5"/>
-			<target ref="id5"/>
+			<source ref="id7"/>
+			<target ref="id7"/>
 			<label kind="guard" x="543" y="-587">x==1&amp;&amp;in_lane[v_id]</label>
 			<label kind="assignment" x="526" y="-663">x=0, update_lane_pose(v_id),
 check_lane_collision(v_id)</label>
@@ -563,96 +771,96 @@ check_lane_collision(v_id)</label>
 			<nail x="705" y="-791"/>
 		</transition>
 		<transition>
-			<source ref="id5"/>
-			<target ref="id6"/>
+			<source ref="id7"/>
+			<target ref="id8"/>
 			<label kind="guard" x="458" y="-510">x==1&amp;&amp;in_intersection[v_id]</label>
 			<label kind="assignment" x="458" y="-485">x=0</label>
 		</transition>
 		<transition>
-			<source ref="id7"/>
-			<target ref="id5"/>
+			<source ref="id9"/>
+			<target ref="id7"/>
 			<label kind="assignment" x="458" y="-672">x=0</label>
 		</transition>
 		<transition>
-			<source ref="id9"/>
-			<target ref="id8"/>
+			<source ref="id12"/>
+			<target ref="id10"/>
 			<label kind="assignment" x="-442" y="-212">initialize_vehicle(v_id)</label>
 		</transition>
 		<transition>
-			<source ref="id10"/>
-			<target ref="id9"/>
+			<source ref="id13"/>
+			<target ref="id12"/>
 			<label kind="assignment" x="-272" y="-306">lane = 2</label>
 		</transition>
 		<transition>
-			<source ref="id11"/>
-			<target ref="id9"/>
+			<source ref="id14"/>
+			<target ref="id12"/>
 			<label kind="assignment" x="-365" y="-306">lane = 1</label>
 		</transition>
 		<transition>
-			<source ref="id17"/>
-			<target ref="id10"/>
+			<source ref="id20"/>
+			<target ref="id13"/>
 			<label kind="probability" x="-272" y="-416">1</label>
 		</transition>
 		<transition>
-			<source ref="id17"/>
-			<target ref="id11"/>
+			<source ref="id20"/>
+			<target ref="id14"/>
 			<label kind="probability" x="-331" y="-416">1</label>
 		</transition>
 		<transition>
-			<source ref="id12"/>
-			<target ref="id17"/>
+			<source ref="id15"/>
+			<target ref="id20"/>
 			<label kind="assignment" x="-196" y="-476">dir = 4</label>
 		</transition>
 		<transition>
-			<source ref="id13"/>
-			<target ref="id17"/>
+			<source ref="id16"/>
+			<target ref="id20"/>
 			<label kind="assignment" x="-264" y="-493">dir = 3</label>
 		</transition>
 		<transition>
-			<source ref="id14"/>
-			<target ref="id17"/>
+			<source ref="id17"/>
+			<target ref="id20"/>
 			<label kind="assignment" x="-331" y="-493">dir = 2</label>
 		</transition>
 		<transition>
-			<source ref="id15"/>
-			<target ref="id17"/>
+			<source ref="id18"/>
+			<target ref="id20"/>
 			<label kind="assignment" x="-407" y="-476">dir = 1</label>
 		</transition>
 		<transition>
-			<source ref="id18"/>
-			<target ref="id12"/>
+			<source ref="id21"/>
+			<target ref="id15"/>
 			<label kind="probability" x="-229" y="-569">1</label>
 		</transition>
 		<transition>
-			<source ref="id18"/>
-			<target ref="id13"/>
+			<source ref="id21"/>
+			<target ref="id16"/>
 			<label kind="probability" x="-272" y="-552">1</label>
 		</transition>
 		<transition>
-			<source ref="id18"/>
-			<target ref="id14"/>
+			<source ref="id21"/>
+			<target ref="id17"/>
 			<label kind="probability" x="-331" y="-552">1</label>
 		</transition>
 		<transition>
-			<source ref="id18"/>
-			<target ref="id15"/>
+			<source ref="id21"/>
+			<target ref="id18"/>
 			<label kind="probability" x="-374" y="-569">1</label>
 		</transition>
 		<transition>
-			<source ref="id16"/>
-			<target ref="id18"/>
+			<source ref="id19"/>
+			<target ref="id21"/>
 		</transition>
 	</template>
 	<template>
 		<name>Traffic</name>
 		<declaration>//clock x;</declaration>
-		<location id="id19" x="-119" y="-17">
+		<location id="id22" x="-119" y="-17">
 			<label kind="invariant" x="-129" y="0">cl&lt;=max_spawn_time</label>
 		</location>
-		<init ref="id19"/>
+		<init ref="id22"/>
 		<transition>
-			<source ref="id19"/>
-			<target ref="id19"/>
+			<source ref="id22"/>
+			<target ref="id22"/>
 			<label kind="guard" x="-467" y="-93">cl&gt;=min_spawn_time &amp;&amp; cl&lt;= max_spawn_time</label>
 			<label kind="assignment" x="-314" y="-170">cl := 0, spawn Master(++vehicle_id)</label>
 			<nail x="-323" y="-17"/>
@@ -665,13 +873,7 @@ check_lane_collision(v_id)</label>
     </system>
 	<queries>
 		<query>
-			<formula>simulate 1 [&lt;=5000] {int_collision}
-			</formula>
-			<comment>
-			</comment>
-		</query>
-		<query>
-			<formula>simulate 1 [&lt;=1000] {v_l}
+			<formula>simulate 1 [&lt;=500]{int_occupancy[1][106], int_occupancy[5][316]}
 			</formula>
 			<comment>
 			</comment>

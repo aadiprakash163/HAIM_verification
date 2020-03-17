@@ -18,7 +18,7 @@ int spawn_time = 15;
 double step = 0.1;
 int [1, 4] dir;
 int [1, 2] lane;
-int lane_array[number_of_vehicles], dir_array[number_of_vehicles];
+//int lane_array[number_of_vehicles], dir_array[number_of_vehicles];
 double v_max = 17.0;
 double acc = 3.0;
 double approach_length = 150.0;
@@ -28,62 +28,68 @@ double safety_gap = 0.500;
 int lane_number_array[number_of_vehicles];
 double enter_time_array[number_of_vehicles];
 double enter_velocity_array[number_of_vehicles];
-int c1, c2, c3, c4, lane_number;
-double d1, d2, d3, d4;
+double d1_array[number_of_vehicles], d2_array[number_of_vehicles], d3_array[number_of_vehicles], d4_array[number_of_vehicles];
+int c1_array[number_of_vehicles], c2_array[number_of_vehicles], c3_array[number_of_vehicles], c4_array[number_of_vehicles];
+// int c1, c2, c3, c4, lane_number;
+// double d1, d2, d3, d4;
 double veh_length = 2.5;
 double veh_width = 2.0;
 double last_vehicle_depart_time[12];
+int last_vehicle_depart_id[12];
+int vehicle_ahead_in_lane[number_of_vehicles];
+int previous_lane_n;
+
 double v_lane_array[number_of_vehicles];
-double v_final[number_of_vehicles], v_f;
-bool in_lane[number_of_vehicles];
-bool in_intersection[number_of_vehicles];
-double pose[number_of_vehicles], pos;
-double v_trans[number_of_vehicles];
-int[0, 1] entered_here = 0;
-int loop_value = 0;
-int[0, 1] lane_occupancy[13][3000];
-int[0, 1] int_occupancy[13][420];
-int previous_lane_roster[number_of_vehicles];
-int previous_int_roster[number_of_vehicles];
-int lane_collision = 0;
-int int_collision = 0;
 double v_fefs_array[number_of_vehicles];
 double v_window_array[number_of_vehicles];
 double v_reservation_array[number_of_vehicles];
+double v_final[number_of_vehicles], v_f;
+bool in_lane[number_of_vehicles];
+bool in_intersection[number_of_vehicles];
+double pose[number_of_vehicles];
+double v_trans[number_of_vehicles];
+//int[0, 1] entered_here = 0;
+int loop_value = 0;
+// int[0, 1] lane_occupancy[13][3000];
+int[0, 1] int_occupancy[13][420];
+// int previous_lane_roster[number_of_vehicles];
+int previous_int_roster[number_of_vehicles];
+int lane_collision = 0;
+int int_collision = 0;
+
 double cp_register[17][11][2];
-double v_avg;
-int received_windowV;
-double avg_vlane;
-double avg_vfefs;
-double avg_vwindow;
-double avg_vreservation;
-int veh_in_int;
-int cp;
-int which_algo;
+// double v_avg;
+// int received_windowV;
+// double avg_vlane;
+// double avg_vfefs;
+// double avg_vwindow;
+// double avg_vreservation;
+// int veh_in_int;
+// int cp;
+// int which_algo;
 
 double v_l;
 double v_fefs;
 double v_window;
 double v_reservation;
 //double intersection_travel_length;
-double lvdt;
-double sldt; // safe lane depart time
-double transit_time;
-double transit_distance;
-double slope1, slope2, slope3, slope4;
-double rslope1, rslope2, rslope3, rslope4;
-double fefs_max_slope, res_max_slope;
-double fefs_criticalcp_target_time;
-double fefs_criticalcp_in_time;
-double res_criticalcp_target_time;
-double res_criticalcp_in_time;
-double plot1, plot2;
-double d1_array[number_of_vehicles], d2_array[number_of_vehicles], d3_array[number_of_vehicles], d4_array[number_of_vehicles];
-int c1_array[number_of_vehicles], c2_array[number_of_vehicles], c3_array[number_of_vehicles], c4_array[number_of_vehicles];
+// double lvdt;
+// double sldt; // safe lane depart time
+// double transit_time;
+// double transit_distance;
+// double slope1, slope2, slope3, slope4;
+// double rslope1, rslope2, rslope3, rslope4;
+// double fefs_max_slope, res_max_slope;
+// double fefs_criticalcp_target_time;
+// double fefs_criticalcp_in_time;
+// double res_criticalcp_target_time;
+// double res_criticalcp_in_time;
+double plot3, plot2;
+int plot1;
+
 int c; // c for critical cp
-int vel_ind, ind;
 double cell_width = 0.05;
-bool crossed_lane[number_of_vehicles];
+// bool crossed_lane[number_of_vehicles];
 
 
 dynamic Master(const int v_id);
@@ -102,11 +108,11 @@ double abs(double num){
     if(num &gt; 0.0) return num;
     else return -1*num;
 }
-
 void initialize_vehicle(int v_id){
-
+	int c1, c2, c3, c4, lane_number;
+	double d1, d2, d3, d4;
     enter_time_array[v_id] = pr_cl * step;
-    enter_velocity_array[v_id] = 5 + random(12);
+    enter_velocity_array[v_id] = 10 + random(7);
     
     if(dir==1 &amp;&amp; lane ==1){
         
@@ -148,17 +154,18 @@ void initialize_vehicle(int v_id){
     v_trans[v_id] = enter_velocity_array[v_id];
     in_lane[v_id] = true;
     in_intersection[v_id] = false;
-    crossed_lane[v_id] = false;
+    // crossed_lane[v_id] = false;
+    vehicle_ahead_in_lane[v_id] = last_vehicle_depart_id[lane_number];
+    last_vehicle_depart_id[lane_number] = v_id;
     //intersection_travel_length = 2*d1 + d2 + d3 + d4;
 }
 
-
 void find_Vlane(int v_id){
     
-    int lane_num;
-
+    int lane_num;    
     double D, ti, vi, to, v_lane, T;
-
+    double d1, d2, d3, d4;
+    d1 = d1_array[v_id] ; d2 = d2_array[v_id];d3 = d3_array[v_id]; d4 = d4_array[v_id];    
     lane_num = lane_number_array[v_id];
 
     ti = enter_time_array[v_id];
@@ -168,6 +175,8 @@ void find_Vlane(int v_id){
     vi = enter_velocity_array[v_id];
 
     D = approach_length + 2*d1 + d2 + d3 + d4 + depart_point_distance; // meters
+    //plot1 = (acc*T*(acc*T + 2*vi)- 2*acc*D)/1000;
+    //plot2 = to - ti;
        
     if(to == 0 || to &lt;= ti || (acc*T*(acc*T + 2*vi)- 2*acc*D) &lt; 0 ){
         v_lane = v_max;
@@ -181,6 +190,9 @@ void find_Vlane(int v_id){
     v_l = v_lane;
     v_lane_array[v_id] = v_lane;
 }
+
+
+
 
 
 void find_Vfefs(int v_id){
@@ -230,20 +242,25 @@ int fint(double x){
 
 
 
-bool is_window_available(double vel, double in_vel, double in_time, double d, int c, double v_len){
-    double tt1, tt2, s, cp_in_time, cp_out_time;
+bool is_window_available(double vel, double in_vel, double in_time, double d, int c, double v_len, int lane_num){
+    double tt1, tt2, s, cp_in_time, cp_out_time, occ_ext, app_len;
     int i;
-    s = abs(in_vel - vel)/ acc;
-    tt1  = abs(vel*vel - in_vel*in_vel)/(2*acc);
-    tt2 = (approach_length - s + d) / vel;
+    if(lane_num==1 || lane_num== 3 || lane_num== 5 || lane_num==7) {occ_ext = veh_width/2;}
+    else {occ_ext = veh_width/1.2;} //19.25*20
+    app_len = (veh_length + 2*occ_ext);
+
+    tt1 = abs(in_vel - vel)/ acc;
+    s  = abs(vel*vel - in_vel*in_vel)/(2*acc);
+    tt2 = (approach_length - s + d - occ_ext) / vel;
 
     cp_in_time = in_time + tt1 + tt2;
-    cp_out_time = cp_in_time + (v_len/vel);
-    //if(cp_in_time &gt; cp_register[c][0][1]) return true;
-
+    cp_out_time = cp_in_time + (app_len/vel);   
+ 
+    
+    if(cp_in_time &gt; cp_register[c][0][1]) return true;
     for(i = stack_length -1; i&gt;0; i--){
         // loop_value += 1;        
-        if(cp_register[c][i][1] &lt; cp_in_time and cp_register[c][i-1][0] &gt; cp_out_time) return true;        
+        if(cp_register[c][i][1] &lt; cp_in_time and cp_register[c][i-1][0] &gt; cp_out_time + safety_gap) return true;        
     }
     return false;
 }
@@ -251,33 +268,38 @@ bool is_window_available(double vel, double in_vel, double in_time, double d, in
 
 void find_Vwindow(int v_id){
     double in_velocity, in_time, v_temp;
-    int i;
+    double d1, d2, d3, d4;
+    int c1, c2, c3, c4, lane_num;
     bool c1_clear = false;bool c2_clear = false; bool c3_clear = false; bool c4_clear = false;
-    bool is_v_window_possible;
-    double tt1, tt2, s, cp1_in_time, cp2_in_time, cp3_in_time, cp4_in_time;
+    lane_num = lane_number_array[v_id];
+    d1 = d1_array[v_id];d2 = d2_array[v_id];d3 = d3_array[v_id];d4 = d4_array[v_id];
+    c1 = c1_array[v_id];c2 = c2_array[v_id];c3 = c3_array[v_id];c4 = c4_array[v_id];
+    //bool is_v_window_possible;
+    //double tt1, tt2, s, cp1_in_time, cp2_in_time, cp3_in_time, cp4_in_time;
     in_velocity  = enter_velocity_array[v_id]; in_time = enter_time_array[v_id];
 
     v_temp = v_lane_array[v_id];
     
-    
-    
-    
     while(!(c1_clear&amp;&amp;c2_clear&amp;&amp;c3_clear&amp;&amp;c4_clear) &amp;&amp; v_temp&gt;0){
         
-        c1_clear = is_window_available(v_temp, in_velocity, in_time, d1, c1, veh_length);
-        c2_clear = is_window_available(v_temp, in_velocity, in_time, d1+d2, c2, veh_length);
-        c3_clear = is_window_available(v_temp, in_velocity, in_time, d1+d2+d3, c3, veh_length);
-        c4_clear = is_window_available(v_temp, in_velocity, in_time, d1+d2+d3+d4, c4, veh_length);
+        c1_clear = is_window_available(v_temp, in_velocity, in_time, d1,          c1, veh_length, lane_num);
+        c2_clear = is_window_available(v_temp, in_velocity, in_time, d1+d2,       c2, veh_length, lane_num);
+        c3_clear = is_window_available(v_temp, in_velocity, in_time, d1+d2+d3,    c3, veh_length, lane_num);
+        c4_clear = is_window_available(v_temp, in_velocity, in_time, d1+d2+d3+d4, c4, veh_length, lane_num);
         
-        v_temp = v_temp - 0.01;
+        v_temp = v_temp - 0.1;
 
     }
-    if(v_temp &gt; 0.1){ v_window = v_temp + 0.01; v_window_array[v_id] = v_window;}
+    if(v_temp &gt; 0.1){ v_window = v_temp + 0.1; v_window_array[v_id] = v_window;}
     else {v_window_array[v_id] = 0;v_window = 0;}
 }
 
 bool did_conflict_resolve(int v_id){
     double v_fefs = v_fefs_array[v_id];
+    double d1, d2, d3, d4;
+    int c3, c4;
+    d1 = d1_array[v_id];d2 = d2_array[v_id];d3 = d3_array[v_id];d4 = d4_array[v_id];
+    c3 = c3_array[v_id];c4 = c4_array[v_id];
     if(v_fefs &gt;0){
         double tt1, tt2, s, cp3_in_time, cp3_out_time, cp4_in_time, cp4_out_time, reserved_cp3_in_time, reserved_cp3_out_time, reserved_cp4_in_time, reserved_cp4_out_time;
         double in_velocity, in_time, cp3_distance, cp4_distance;
@@ -371,9 +393,9 @@ void find_Vreservation(int v_id){
 
 void find_Vfinal(int v_id){
 
-     if(v_window_array[v_id] &gt; 0) {v_final[v_id] = v_window_array[v_id]; vel_ind = 2;}
-    else if(did_conflict_resolve(v_id)){ v_final[v_id] = v_fefs_array[v_id];vel_ind =1 ;}
-    else {v_final[v_id] = v_reservation_array[v_id];vel_ind = 3;}
+     if(v_window_array[v_id] &gt; v_fefs_array[v_id]) {v_final[v_id] = v_window_array[v_id];}
+    else if(did_conflict_resolve(v_id)){ v_final[v_id] = v_fefs_array[v_id];}
+    else {v_final[v_id] = v_reservation_array[v_id];}
     
 }
 
@@ -398,18 +420,21 @@ void insert_in_stack(int c, double in_time, double out_time){
 
     cp_register[c][index][0] = in_time;
     cp_register[c][index][1] = out_time;   
-    ind = index;
+    //ind = index;
 }
 
 void update_registers(int v_id){
     double tt1, tt2, s, pass_time, in_time, in_velocity, v_fin, occ_ext, app_len;
-    int lane_num;
+    int c1, c2, c3, c4, lane_num;
+    double d1, d2, d3, d4;
+    c1 = c1_array[v_id] ; c2 = c2_array[v_id];c3 = c3_array[v_id]; c4 = c4_array[v_id];    
+    d1 = d1_array[v_id] ; d2 = d2_array[v_id];d3 = d3_array[v_id]; d4 = d4_array[v_id];    
     lane_num = lane_number_array[v_id];
     in_time = enter_time_array[v_id];
     in_velocity = enter_velocity_array[v_id];
 
     if(lane_num==1 || lane_num== 3 || lane_num== 5 || lane_num==7) {occ_ext = veh_width/2;}
-    else {occ_ext = veh_width/1.2;} //19.25*20
+    else {occ_ext = veh_width/1.2;} 
     app_len = (veh_length + 2*occ_ext);
 
     
@@ -443,6 +468,7 @@ void update_registers(int v_id){
 
     }
 }
+
 void update_lane_pose(int v_id){    
     double v_fin, v_temp, in_velocity,s;
     // entered_here = 1;
@@ -476,34 +502,34 @@ void update_lane_pose(int v_id){
             }
     }else{
         in_lane[v_id] = false;
-        veh_in_int += 1;
+        // veh_in_int += 1;
         in_intersection[v_id] = true;
     }
 
-    if(in_lane[v_id]){
-        position = pose[v_id]; roster = fint(position/delta);
-        previous_roster = previous_lane_roster[v_id];
+    // if(in_lane[v_id]){
+    //     position = pose[v_id]; roster = fint(position/delta);
+    //     previous_roster = previous_lane_roster[v_id];
         
-        if(previous_roster &lt; 50){
-            for(i = 0; i &lt; previous_roster; i++) lane_occupancy[lane_num][i] = 0;
-        }else{
-            for(i = 0; i &lt; 50; i++) lane_occupancy[lane_num][previous_roster - i] = 0;
-        }
+    //     if(previous_roster &lt; 50){
+    //         for(i = 0; i &lt; previous_roster; i++) lane_occupancy[lane_num][i] = 0;
+    //     }else{
+    //         for(i = 0; i &lt; 50; i++) lane_occupancy[lane_num][previous_roster - i] = 0;
+    //     }
         
-        if(roster &lt; 50){
-            for(i = 0; i &lt; roster; i++) lane_occupancy[lane_num][i] = 1;        
-        }else{
-            if(roster &gt;= 3000) roster_overflow = roster - 3000;
-            for(i = 0; i &lt; 50 - roster_overflow - 1; i++) lane_occupancy[lane_num][roster - roster_overflow - 1 - i] = 1;
-        }
+    //     if(roster &lt; 50){
+    //         for(i = 0; i &lt; roster; i++) lane_occupancy[lane_num][i] = 1;        
+    //     }else{
+    //         if(roster &gt;= 3000) roster_overflow = roster - 3000;
+    //         for(i = 0; i &lt; 50 - roster_overflow - 1; i++) lane_occupancy[lane_num][roster - roster_overflow - 1 - i] = 1;
+    //     }
 
-        if(roster &lt; 3000) previous_lane_roster[v_id] = roster;
-        else previous_lane_roster[v_id] = 2999;
-    }
-    if(in_intersection[v_id] &amp;&amp; !crossed_lane[v_id]){
-        crossed_lane[v_id] = true;
-        for(i = 0; i &lt; 50; i++) lane_occupancy[lane_num][2999 - i] = 0;
-    }
+    //     if(roster &lt; 3000) previous_lane_roster[v_id] = roster;
+    //     else previous_lane_roster[v_id] = 2999;
+    // }
+    // if(in_intersection[v_id] &amp;&amp; !crossed_lane[v_id]){
+    //     crossed_lane[v_id] = true;
+    //     for(i = 0; i &lt; 50; i++) lane_occupancy[lane_num][2999 - i] = 0;
+    // }
     
     
     
@@ -511,8 +537,15 @@ void update_lane_pose(int v_id){
 
 
 
-
 void check_lane_collision(int v_id){    
+    if(in_lane[v_id]){
+        if(pose[vehicle_ahead_in_lane[v_id]]&gt;0 &amp;&amp; pose[v_id] &gt;= pose[vehicle_ahead_in_lane[v_id]] - veh_length)
+        {
+            //plot1 = v_id; plot2 = vehicle_ahead_in_lane[v_id];
+            lane_collision += 1;
+        }
+    }
+/*
     int lane_n = lane_number_array[v_id], i, array_size = 3000;
     int max_length = 0, current_length = 0;
     if(in_lane[v_id]){
@@ -524,8 +557,8 @@ void check_lane_collision(int v_id){
         if(current_length &gt; max_length) max_length = current_length;
     }
     }
-    if(max_length &gt; 51) lane_collision += 1;
-    
+    if(max_length &gt; 51){ plot1 = max_length; plot2 = v_id; lane_collision += 1;}
+  */  
     
 }
 
@@ -534,9 +567,9 @@ void update_int_pose(int v_id){
     int lane_num = lane_number_array[v_id], roster_head, number_of_rosters, i , previous_roster;
     if(lane_num==1 || lane_num== 3 || lane_num== 5 || lane_num==7) {total_int_length = 21.0; number_of_rosters = 21*20;}
     else {total_int_length = 19.25; number_of_rosters = 385;} //19.25*20
-    app_len = (veh_length )/cell_width; // In terms of rosters occupied by the extended length of the vehicle
+    app_len = (veh_length + 2*occ_ext )/cell_width; // In terms of rosters occupied by the extended length of the vehicle
     delta = total_int_length / number_of_rosters;
-    pos = pose[v_id];
+    //pos = pose[v_id];
     if(in_intersection[v_id]){
         pose[v_id] = pose[v_id] + v_fin * step;
         int_length_travelled = pose[v_id] - approach_length;
@@ -546,7 +579,7 @@ void update_int_pose(int v_id){
             // pose[v_id] = 150.0 + total_int_length;
         }
         else{
-            roster_head = min_int(fint(int_length_travelled/cell_width), number_of_rosters - 1);
+            roster_head = min_int(fint((int_length_travelled + occ_ext)/cell_width), number_of_rosters - 1);
         }
     }
     
@@ -560,8 +593,8 @@ void update_int_pose(int v_id){
     if(roster_head &lt; app_len){
             for(i = 0; i &lt; roster_head; i++) int_occupancy[lane_num][i] = 1;        
         }else{
-            if(int_length_travelled &gt; total_int_length){
-                len_in_int = (int_length_travelled - total_int_length)/cell_width;
+            if(int_length_travelled &gt; total_int_length - occ_ext){
+                len_in_int = app_len - (int_length_travelled + occ_ext - total_int_length)/cell_width;
                 for(i = 0; i &lt; len_in_int; i++) int_occupancy[lane_num][roster_head - i] = 1;
             }else {
                     for(i = 0; i &lt; app_len; i++) int_occupancy[lane_num][roster_head - i] = 1;
@@ -574,25 +607,25 @@ void update_int_pose(int v_id){
 }
 
 void check_int_collision(int v_id){
-    if(int_occupancy[1][106] &amp;&amp; int_occupancy[5][316]) {int_collision += 1; cp = 1;}
-    if(int_occupancy[1][199] &amp;&amp; int_occupancy[4][277]) {int_collision += 1; cp = 2;}
-    if(int_occupancy[1][222] &amp;&amp; int_occupancy[8][109]) {int_collision += 1; cp = 3;}
-    if(int_occupancy[1][316] &amp;&amp; int_occupancy[7][106]) {int_collision += 1; cp = 4;}
+    if(int_occupancy[1][106] &amp;&amp; int_occupancy[5][316]) {int_collision += 1;}
+    if(int_occupancy[1][199] &amp;&amp; int_occupancy[4][277]) {int_collision += 1;}
+    if(int_occupancy[1][222] &amp;&amp; int_occupancy[8][109]) {int_collision += 1;}
+    if(int_occupancy[1][316] &amp;&amp; int_occupancy[7][106]) {int_collision += 1;}
 
-    if(int_occupancy[3][316] &amp;&amp; int_occupancy[5][106]) {int_collision += 1; cp = 5;}
-    if(int_occupancy[3][222] &amp;&amp; int_occupancy[6][109]) {int_collision += 1; cp = 6;}
-    if(int_occupancy[3][199] &amp;&amp; int_occupancy[2][277]) {int_collision += 1; cp = 7;}
-    if(int_occupancy[3][106] &amp;&amp; int_occupancy[7][316]) {int_collision += 1; cp = 8;}
+    if(int_occupancy[3][316] &amp;&amp; int_occupancy[5][106]) {int_collision += 1;}
+    if(int_occupancy[3][222] &amp;&amp; int_occupancy[6][109]) {int_collision += 1;}
+    if(int_occupancy[3][199] &amp;&amp; int_occupancy[2][277]) {int_collision += 1;}
+    if(int_occupancy[3][106] &amp;&amp; int_occupancy[7][316]) {int_collision += 1;}
 
-    if(int_occupancy[4][109] &amp;&amp; int_occupancy[7][222]) {int_collision += 1; cp = 9;}
-    if(int_occupancy[6][277] &amp;&amp; int_occupancy[7][199]) {int_collision += 1; cp = 10;}
-    if(int_occupancy[2][109] &amp;&amp; int_occupancy[5][222]) {int_collision += 1; cp = 11;}
-    if(int_occupancy[5][199] &amp;&amp; int_occupancy[8][277]) {int_collision += 1; cp = 12;}
+    if(int_occupancy[4][109] &amp;&amp; int_occupancy[7][222]) {int_collision += 1;}
+    if(int_occupancy[6][277] &amp;&amp; int_occupancy[7][199]) {int_collision += 1;}
+    if(int_occupancy[2][109] &amp;&amp; int_occupancy[5][222]) {int_collision += 1;}
+    if(int_occupancy[5][199] &amp;&amp; int_occupancy[8][277]) {int_collision += 1;}
 
-    if(int_occupancy[8][253] &amp;&amp; int_occupancy[2][133]) {int_collision += 1; cp = 13;}
-    if(int_occupancy[2][253] &amp;&amp; int_occupancy[6][133]) {int_collision += 1; cp = 14;}
-    if(int_occupancy[4][133] &amp;&amp; int_occupancy[6][253]) {int_collision += 1; cp = 15;}
-    if(int_occupancy[8][133] &amp;&amp; int_occupancy[4][253]) {int_collision += 1; cp = 16;}
+    if(int_occupancy[8][253] &amp;&amp; int_occupancy[2][133]) {int_collision += 1;}
+    if(int_occupancy[2][253] &amp;&amp; int_occupancy[6][133]) {int_collision += 1;}
+    if(int_occupancy[4][133] &amp;&amp; int_occupancy[6][253]) {int_collision += 1;}
+    if(int_occupancy[8][133] &amp;&amp; int_occupancy[4][253]) {int_collision += 1;}
 }
 
 
@@ -846,7 +879,7 @@ check_lane_collision(v_id)</label>
     </system>
 	<queries>
 		<query>
-			<formula>simulate 1 [&lt;=500]{int_occupancy[1][106], int_occupancy[5][316]}
+			<formula>simulate 1 [&lt;=500]{int_collision}
 			</formula>
 			<comment>
 			</comment>
@@ -858,7 +891,7 @@ check_lane_collision(v_id)</label>
 			</comment>
 		</query>
 		<query>
-			<formula>Pr([][0,1000]  int_collision==0 )
+			<formula>Pr([][0,500]  int_collision==0 )
 			</formula>
 			<comment>
 			</comment>
